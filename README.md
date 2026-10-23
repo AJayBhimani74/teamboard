@@ -1,59 +1,51 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Teamboard
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A small multi-workspace task board built with Laravel 12. One user can belong to several workspaces, each workspace has its own members, projects and tasks, and the data of one workspace is never visible in another. It is a portfolio project and is not based on any client or employer code.
 
-## About Laravel
+![Board](docs/screenshots/board.png)
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## What it does
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- **Workspaces.** Create a workspace and you become its owner. Switch between the workspaces you belong to.
+- **Roles per workspace.** Owner, admin and member. The same person can be an owner in one workspace and a plain member in another.
+- **Projects and tasks.** A board per project with To do / In progress / Done, optional assignee and due date.
+- **Invitations.** Admins invite people by email. The link works for 7 days, only for the invited address, and only once. People without an account are sent to register first.
+- **Plans with limits.** Free allows 3 members and 3 projects, Pro allows 25 members and unlimited projects. Pending invitations count towards the member limit. Switching plan is just a button, there is no payment step.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+| Projects | Members | Plan |
+|---|---|---|
+| ![](docs/screenshots/projects.png) | ![](docs/screenshots/members.png) | ![](docs/screenshots/plan.png) |
 
-## Learning Laravel
+## Who can do what
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+| | Member | Admin | Owner |
+|---|---|---|---|
+| See projects, add and move tasks | yes | yes | yes |
+| Create and delete projects | | yes | yes |
+| Invite and remove people | | yes | yes |
+| Change roles, change plan | | | yes |
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## How the data is kept apart
 
-## Laravel Sponsors
+Projects and tasks have a `workspace_id`. They use a small trait, `BelongsToWorkspace`, that adds a global scope (`where workspace_id = current workspace`) and fills in `workspace_id` when a record is created. A middleware works out the current workspace from the session, checks the user really is a member, and stores it in a small service. See [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md) for the details and the one ordering trap in route model binding.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## Running it
 
-### Premium Partners
+```bash
+composer install
+cp .env.example .env && php artisan key:generate
+touch database/database.sqlite
+php artisan migrate --seed
+php artisan serve
+php artisan queue:work   # only needed to send the invitation emails
+```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+Emails are written to `storage/logs/laravel.log` by default. Demo logins (password `password`): `owner@example.com`, `admin@example.com`, `member@example.com`.
 
-## Contributing
+## Tests
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+php artisan test
+```
 
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+23 feature tests on in-memory SQLite: tenant isolation, role rules, plan limits and the invitation flow. CI runs Pint and the tests on PHP 8.2 and 8.3.
