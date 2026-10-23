@@ -50,6 +50,6 @@ class User extends Authenticatable
 
     public function workspaces(): BelongsToMany
     {
-        return $this->belongsToMany(Workspace::class)->withPivot('role')->withTimestamps();
+        return $this->belongsToMany(Workspace::class, 'workspace_user')->withPivot('role')->withTimestamps();
     }
 }
